@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PinjamLab</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; }
+
+    /* ===== Badge status (dipakai oleh app.js, Siswa 4) =====
+       Alat      : badge badge-available (tersedia) | badge badge-borrowed (dipinjam)
+       Riwayat   : badge badge-borrowed (dipinjam)  | badge badge-returned (dikembalikan) */
+    .badge { display: inline-block; border-radius: 9999px; padding: 4px 12px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+    .badge-available, .badge-returned { background: #ccfbf1; color: #115e59; }
+    .badge-borrowed { background: #fef3c7; color: #92400e; }
+
+    /* Tombol "Kembali" di tabel riwayat */
+    .btn-return { border: 1.5px solid #0e7490; color: #0e7490; background: #fff; border-radius: 12px; min-height: 44px; padding: 0 16px; font-weight: 600; font-size: 14px; }
+    .btn-return:hover { background: #ecfeff; }
+    .btn-return:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* Tabel -> kartu di layar HP (di bawah 640px), tanpa mengubah isi JS */
+    @media (max-width: 639px) {
+      .stack-table, .stack-table tbody { display: block; width: 100%; }
+      .stack-table thead { display: none; }
+      .stack-table tr { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid #e0f2f4; }
+      .stack-table tr:last-child { border-bottom: 0; }
+      .stack-table td { padding: 0 !important; border: 0 !important; }
+
+      /* Daftar alat: No | Nama | Kategori | Status */
+      #equipment-list td:nth-child(1) { display: none; }
+      #equipment-list td:nth-child(2) { grid-column: 1; font-weight: 600; font-size: 15px; }
+      #equipment-list td:nth-child(3) { grid-column: 1; grid-row: 2; font-size: 13px; color: #475569; }
+      #equipment-list td:nth-child(4) { grid-column: 2; grid-row: 1 / span 2; }
+
+      /* Riwayat: Alat | Peminjam | Tanggal | Status | Aksi */
+      #loan-list tr { background: #f0fafb; border-radius: 12px; padding: 14px; margin-bottom: 12px; border-bottom: 0; }
+      #loan-list td:nth-child(1) { grid-column: 1; font-weight: 600; font-size: 15px; }
+      #loan-list td:nth-child(4) { grid-column: 2; grid-row: 1; justify-self: end; }
+      #loan-list td:nth-child(2) { grid-column: 1 / span 2; font-size: 13px; color: #475569; }
+      #loan-list td:nth-child(3) { grid-column: 1 / span 2; font-size: 13px; color: #475569; }
+      #loan-list td:nth-child(2)::before { content: "Peminjam: "; }
+      #loan-list td:nth-child(3)::before { content: "Tanggal: "; }
+      #loan-list td:nth-child(5) { grid-column: 1 / span 2; margin-top: 10px; }
+      #loan-list td:nth-child(5):empty { display: none; }
+      #loan-list td:nth-child(5) button { width: 100%; }
+    }
+  </style>
+</head>
+<body class="bg-[#f0fafb] text-cyan-950 min-h-screen">
+
+  <!-- ================= HEADER ================= -->
+  <header class="bg-cyan-700 text-white rounded-b-3xl sm:rounded-none">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-bold">PinjamLab</h1>
+        <p class="text-sm">Aplikasi peminjaman alat kelas</p>
+      </div>
+      <button id="refresh-btn" type="button"
+        class="w-full sm:w-auto min-h-[46px] px-5 rounded-xl bg-white text-cyan-700 font-semibold hover:bg-cyan-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-300 disabled:opacity-60">
+        Muat ulang
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 py-5 space-y-5">
+
+    <!-- ================= PESAN SUKSES / GAGAL (F06) =================
+         Disembunyikan dulu. app.js: hapus class "hidden", isi dengan textContent, lalu pasang salah satu:
+         sukses -> bg-teal-100 text-teal-800
+         gagal  -> bg-red-100 text-red-800 -->
+    <div id="message" role="status" aria-live="polite"
+      class="hidden rounded-xl px-4 py-3 text-sm font-semibold"></div>
+
+    <!-- ================= RINGKASAN (F02) ================= -->
+    <section aria-label="Ringkasan" class="grid grid-cols-3 gap-3 sm:gap-5">
+      <div class="bg-white rounded-2xl shadow p-3 sm:p-5">
+        <p class="text-[11px] sm:text-xs font-semibold tracking-wide text-slate-600">TOTAL</p>
+        <p id="stat-total" class="text-3xl font-bold mt-1">0</p>
+      </div>
+      <div class="bg-white rounded-2xl shadow p-3 sm:p-5">
+        <p class="text-[11px] sm:text-xs font-semibold tracking-wide text-slate-600">TERSEDIA</p>
+        <p id="stat-available" class="text-3xl font-bold mt-1 text-teal-700">0</p>
+      </div>
+      <div class="bg-white rounded-2xl shadow p-3 sm:p-5">
+        <p class="text-[11px] sm:text-xs font-semibold tracking-wide text-slate-600">DIPINJAM</p>
+        <p id="stat-borrowed" class="text-3xl font-bold mt-1 text-amber-700">0</p>
+      </div>
+    </section>
+
+    <!-- ================= DAFTAR ALAT (F01) + FORM PINJAM (F03) ================= -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+      <div class="lg:col-span-2 bg-white rounded-2xl shadow p-4 sm:p-5">
+        <h2 class="text-lg font-semibold mb-3">Daftar alat</h2>
+        <div class="overflow-x-auto">
+          <table class="stack-table w-full text-sm text-left">
+            <thead>
+              <tr class="text-xs uppercase tracking-wide text-slate-600 border-b border-cyan-100">
+                <th class="py-2 px-1.5 w-14">No</th>
+                <th class="py-2 px-1.5">Nama alat</th>
+                <th class="py-2 px-1.5">Kategori</th>
+                <th class="py-2 px-1.5">Status</th>
+              </tr>
+            </thead>
+            <!-- Dibiarkan kosong: diisi app.js dari GET /api/equipment.
+                 Urutan sel per baris: id | name | category | status -->
+            <tbody id="equipment-list" class="[&>tr]:border-b [&>tr]:border-cyan-50 [&_td]:py-4 [&_td]:px-1.5 [&>tr>td:nth-child(2)]:font-semibold"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow p-4 sm:p-5 flex flex-col">
+        <h2 class="text-lg font-semibold mb-3">Form pinjam</h2>
+        <form id="borrow-form" class="flex flex-col flex-1" novalidate>
+          <div class="mb-4">
+            <label for="borrower-name" class="block text-sm font-semibold text-cyan-800 mb-1.5">Nama peminjam</label>
+            <input id="borrower-name" name="borrower_name" type="text" required minlength="2" maxlength="80"
+              autocomplete="off" placeholder="Tulis nama peminjam"
+              class="w-full min-h-[48px] rounded-xl border-[1.5px] border-slate-300 px-3.5 text-base focus:outline-none focus:ring-4 focus:ring-cyan-200 focus:border-cyan-700">
+            <p class="text-xs text-slate-600 mt-1">2 sampai 80 karakter</p>
+          </div>
+          <div class="mb-5">
+            <label for="equipment-id" class="block text-sm font-semibold text-cyan-800 mb-1.5">Pilih alat</label>
+            <select id="equipment-id" name="equipment_id" required
+              class="w-full min-h-[48px] rounded-xl border-[1.5px] border-slate-300 px-3 text-base bg-white focus:outline-none focus:ring-4 focus:ring-cyan-200 focus:border-cyan-700">
+              <option value="">Pilih alat yang tersedia</option>
+            </select>
+            <p class="text-xs text-slate-600 mt-1">Hanya alat berstatus Tersedia yang muncul</p>
+          </div>
+          <button id="btn-borrow" type="submit"
+            class="mt-auto w-full min-h-[48px] rounded-xl bg-cyan-700 text-white text-base font-semibold hover:bg-cyan-800 focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-300 disabled:opacity-60 disabled:cursor-not-allowed">
+            PINJAM
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ================= RIWAYAT (F04 + F05) + TAMBAH ALAT (opsional) ================= -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+      <!-- Kalau kartu "Tambah alat" di bawah diaktifkan, ganti lg:col-span-3 menjadi lg:col-span-2 -->
+      <div class="lg:col-span-3 bg-white rounded-2xl shadow p-4 sm:p-5">
+        <h2 class="text-lg font-semibold mb-3">Riwayat peminjaman</h2>
+        <div class="overflow-x-auto">
+          <table class="stack-table w-full text-sm text-left">
+            <thead>
+              <tr class="text-xs uppercase tracking-wide text-slate-600 border-b border-cyan-100">
+                <th class="py-2 px-1.5">Alat</th>
+                <th class="py-2 px-1.5">Peminjam</th>
+                <th class="py-2 px-1.5">Tanggal</th>
+                <th class="py-2 px-1.5">Status</th>
+                <th class="py-2 px-1.5">Aksi</th>
+              </tr>
+            </thead>
+            <!-- Dibiarkan kosong: diisi app.js dari GET /api/loans.
+                 Urutan sel per baris: equipment_name | borrower_name | borrowed_at | status | aksi
+                 Sel aksi: tombol <button class="btn-return"> hanya untuk status "dipinjam";
+                 untuk "dikembalikan" biarkan sel kosong. -->
+            <tbody id="loan-list" class="[&>tr]:border-b [&>tr]:border-cyan-50 [&_td]:py-3.5 [&_td]:px-1.5 [&>tr>td:nth-child(1)]:font-semibold"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- OPSIONAL, di luar kontrak PDF. Disembunyikan secara default.
+           Aktifkan (hapus "hidden") HANYA setelah semua tes T01-T08 lulus dan
+           Siswa 2 menambahkan endpoint POST /api/equipment. Jangan dikerjakan setelah 14.30. -->
+      <div id="add-equipment-section" class="hidden bg-white rounded-2xl shadow p-4 sm:p-5 flex flex-col">
+        <h2 class="text-lg font-semibold mb-3 flex items-center gap-2">
+          Tambah alat
+          <span class="rounded-full bg-cyan-100 text-cyan-800 text-[11px] font-semibold px-2.5 py-0.5">Opsional</span>
+        </h2>
+        <form id="add-equipment-form" class="flex flex-col flex-1" novalidate>
+          <div class="mb-4">
+            <label for="new-name" class="block text-sm font-semibold text-cyan-800 mb-1.5">Nama alat</label>
+            <input id="new-name" name="name" type="text" maxlength="100" placeholder="Contoh: Mouse Gaming"
+              class="w-full min-h-[48px] rounded-xl border-[1.5px] border-slate-300 px-3.5 text-base focus:outline-none focus:ring-4 focus:ring-cyan-200 focus:border-cyan-700">
+          </div>
+          <div class="mb-5">
+            <label for="new-category" class="block text-sm font-semibold text-cyan-800 mb-1.5">Kategori</label>
+            <input id="new-category" name="category" type="text" maxlength="60" placeholder="Contoh: Aksesori"
+              class="w-full min-h-[48px] rounded-xl border-[1.5px] border-slate-300 px-3.5 text-base focus:outline-none focus:ring-4 focus:ring-cyan-200 focus:border-cyan-700">
+          </div>
+          <button id="btn-add-equipment" type="submit"
+            class="mt-auto w-full min-h-[48px] rounded-xl border-[1.5px] border-cyan-700 bg-cyan-50 text-cyan-700 text-base font-semibold hover:bg-cyan-100 focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-300 disabled:opacity-60">
+            Tambah alat
+          </button>
+        </form>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
