@@ -1,197 +1,326 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PinjamLab</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PinjamLab - Aplikasi peminjaman alat kelas</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; }
-
-    /* ===== Badge status (dipakai oleh app.js, Siswa 4) =====
-       Alat      : badge badge-available (tersedia) | badge badge-borrowed (dipinjam)
-       Riwayat   : badge badge-borrowed (dipinjam)  | badge badge-returned (dikembalikan) */
-    .badge { display: inline-block; border-radius: 9999px; padding: 4px 12px; font-size: 12px; font-weight: 600; white-space: nowrap; }
-    .badge-available, .badge-returned { background: #ccfbf1; color: #115e59; }
-    .badge-borrowed { background: #fef3c7; color: #92400e; }
-
-    /* Tombol "Kembali" di tabel riwayat */
-    .btn-return { border: 1.5px solid #0e7490; color: #0e7490; background: #fff; border-radius: 12px; min-height: 44px; padding: 0 16px; font-weight: 600; font-size: 14px; }
-    .btn-return:hover { background: #ecfeff; }
-    .btn-return:disabled { opacity: .5; cursor: not-allowed; }
-
-    /* Tabel -> kartu di layar HP (di bawah 640px), tanpa mengubah isi JS */
-    @media (max-width: 639px) {
-      .stack-table, .stack-table tbody { display: block; width: 100%; }
-      .stack-table thead { display: none; }
-      .stack-table tr { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid #e0f2f4; }
-      .stack-table tr:last-child { border-bottom: 0; }
-      .stack-table td { padding: 0 !important; border: 0 !important; }
-
-      /* Daftar alat: No | Nama | Kategori | Status */
-      #equipment-list td:nth-child(1) { display: none; }
-      #equipment-list td:nth-child(2) { grid-column: 1; font-weight: 600; font-size: 15px; }
-      #equipment-list td:nth-child(3) { grid-column: 1; grid-row: 2; font-size: 13px; color: #475569; }
-      #equipment-list td:nth-child(4) { grid-column: 2; grid-row: 1 / span 2; }
-
-      /* Riwayat: Alat | Peminjam | Tanggal | Status | Aksi */
-      #loan-list tr { background: #f0fafb; border-radius: 12px; padding: 14px; margin-bottom: 12px; border-bottom: 0; }
-      #loan-list td:nth-child(1) { grid-column: 1; font-weight: 600; font-size: 15px; }
-      #loan-list td:nth-child(4) { grid-column: 2; grid-row: 1; justify-self: end; }
-      #loan-list td:nth-child(2) { grid-column: 1 / span 2; font-size: 13px; color: #475569; }
-      #loan-list td:nth-child(3) { grid-column: 1 / span 2; font-size: 13px; color: #475569; }
-      #loan-list td:nth-child(2)::before { content: "Peminjam: "; }
-      #loan-list td:nth-child(3)::before { content: "Tanggal: "; }
-      #loan-list td:nth-child(5) { grid-column: 1 / span 2; margin-top: 10px; }
-      #loan-list td:nth-child(5):empty { display: none; }
-      #loan-list td:nth-child(5) button { width: 100%; }
-    }
-  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Noto Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'] },
+          colors: {
+            brand: { DEFAULT: '#0F7490', dark: '#0F6A80' },
+            page: '#F0F8FA',
+            ink: '#0F3040',
+            muted: '#4C6B77',
+            body: '#2D4B58',
+            line: '#E3EEF2',
+            field: '#B7D3DB',
+          },
+          boxShadow: { card: '0 2px 10px rgba(15, 76, 102, 0.08)' },
+        },
+      },
+    };
+  </script>
 </head>
-<body class="bg-[#f0fafb] text-cyan-950 min-h-screen">
 
-  <!-- ================= HEADER ================= -->
-  <header class="bg-cyan-700 text-white rounded-b-3xl sm:rounded-none">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      <div>
-        <h1 class="text-2xl sm:text-3xl font-bold">PinjamLab</h1>
-        <p class="text-sm">Aplikasi peminjaman alat kelas</p>
-      </div>
-      <button id="refresh-btn" type="button"
-        class="w-full sm:w-auto min-h-[46px] px-5 rounded-xl bg-white text-cyan-700 font-semibold hover:bg-cyan-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-300 disabled:opacity-60">
-        Muat ulang
-      </button>
+<body class="bg-page font-sans text-ink antialiased">
+  <!-- Header -->
+  <header class="rounded-b-3xl bg-brand px-4 pb-4 pt-6 text-white md:flex md:items-center md:justify-between md:rounded-none md:px-10 md:py-7">
+    <div>
+      <h1 class="text-[28px] font-bold leading-tight md:text-3xl">PinjamLab</h1>
+      <p class="text-sm text-[#D6EEF4]">Aplikasi peminjaman alat kelas</p>
     </div>
+    <button type="button" class="mt-3 w-full rounded-xl bg-white px-5 py-3 text-[15px] font-semibold text-brand-dark shadow-card md:mt-0 md:w-auto">
+      Muat ulang
+    </button>
   </header>
 
-  <main class="max-w-6xl mx-auto px-4 sm:px-6 py-5 space-y-5">
+  <main class="space-y-4 px-4 pb-10 pt-4 md:space-y-5 md:px-10 md:pb-14 md:pt-6">
+    <!-- Notifikasi -->
+    <div class="rounded-xl bg-[#CCFBEF] px-4 py-3 text-sm font-medium text-[#0F5F55]" role="status">
+      Berhasil dipinjam
+    </div>
 
-    <!-- ================= PESAN SUKSES / GAGAL (F06) =================
-         Disembunyikan dulu. app.js: hapus class "hidden", isi dengan textContent, lalu pasang salah satu:
-         sukses -> bg-teal-100 text-teal-800
-         gagal  -> bg-red-100 text-red-800 -->
-    <div id="message" role="status" aria-live="polite"
-      class="hidden rounded-xl px-4 py-3 text-sm font-semibold"></div>
-
-    <!-- ================= RINGKASAN (F02) ================= -->
-    <section aria-label="Ringkasan" class="grid grid-cols-3 gap-3 sm:gap-5">
-      <div class="bg-white rounded-2xl shadow p-3 sm:p-5">
-        <p class="text-[11px] sm:text-xs font-semibold tracking-wide text-slate-600">TOTAL</p>
-        <p id="stat-total" class="text-3xl font-bold mt-1">0</p>
+    <!-- Statistik -->
+    <section class="grid grid-cols-3 gap-2.5 md:gap-5" aria-label="Statistik alat">
+      <div class="rounded-[14px] bg-white px-3 py-3 shadow-card md:rounded-2xl md:px-[18px] md:py-4">
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-muted md:text-xs">Total</p>
+        <p class="text-[28px] font-bold leading-tight text-ink md:text-[32px]">6</p>
       </div>
-      <div class="bg-white rounded-2xl shadow p-3 sm:p-5">
-        <p class="text-[11px] sm:text-xs font-semibold tracking-wide text-slate-600">TERSEDIA</p>
-        <p id="stat-available" class="text-3xl font-bold mt-1 text-teal-700">0</p>
+      <div class="rounded-[14px] bg-white px-3 py-3 shadow-card md:rounded-2xl md:px-[18px] md:py-4">
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-muted md:text-xs">Tersedia</p>
+        <p class="text-[28px] font-bold leading-tight text-teal-700 md:text-[32px]">4</p>
       </div>
-      <div class="bg-white rounded-2xl shadow p-3 sm:p-5">
-        <p class="text-[11px] sm:text-xs font-semibold tracking-wide text-slate-600">DIPINJAM</p>
-        <p id="stat-borrowed" class="text-3xl font-bold mt-1 text-amber-700">0</p>
+      <div class="rounded-[14px] bg-white px-3 py-3 shadow-card md:rounded-2xl md:px-[18px] md:py-4">
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-muted md:text-xs">Dipinjam</p>
+        <p class="text-[28px] font-bold leading-tight text-amber-700 md:text-[32px]">2</p>
       </div>
     </section>
 
-    <!-- ================= DAFTAR ALAT (F01) + FORM PINJAM (F03) ================= -->
-    <section class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+    <!-- Daftar alat + Form pinjam -->
+    <div class="space-y-4 md:grid md:grid-cols-[1fr_393px] md:gap-5 md:space-y-0">
+      <!-- Daftar alat -->
+      <section class="rounded-2xl bg-white p-4 shadow-card md:p-[18px]">
+        <h2 class="mb-3 text-[17px] font-bold">Daftar alat</h2>
 
-      <div class="lg:col-span-2 bg-white rounded-2xl shadow p-4 sm:p-5">
-        <h2 class="text-lg font-semibold mb-3">Daftar alat</h2>
-        <div class="overflow-x-auto">
-          <table class="stack-table w-full text-sm text-left">
-            <thead>
-              <tr class="text-xs uppercase tracking-wide text-slate-600 border-b border-cyan-100">
-                <th class="py-2 px-1.5 w-14">No</th>
-                <th class="py-2 px-1.5">Nama alat</th>
-                <th class="py-2 px-1.5">Kategori</th>
-                <th class="py-2 px-1.5">Status</th>
-              </tr>
-            </thead>
-            <!-- Dibiarkan kosong: diisi app.js dari GET /api/equipment.
-                 Urutan sel per baris: id | name | category | status -->
-            <tbody id="equipment-list" class="[&>tr]:border-b [&>tr]:border-cyan-50 [&_td]:py-4 [&_td]:px-1.5 [&>tr>td:nth-child(2)]:font-semibold"></tbody>
-          </table>
-        </div>
-      </div>
+        <!-- Tabel desktop -->
+        <table class="hidden w-full text-left md:table">
+          <thead>
+            <tr class="border-b border-[#D5E3E8] text-xs font-semibold uppercase tracking-wide text-muted">
+              <th class="w-[62px] py-2.5">No</th>
+              <th class="py-2.5">Nama alat</th>
+              <th class="py-2.5">Kategori</th>
+              <th class="py-2.5">Status</th>
+            </tr>
+          </thead>
+          <tbody class="text-[15px]">
+            <tr class="border-b border-line">
+              <td class="py-3.5 text-sm text-body">1</td>
+              <td class="py-3.5 font-semibold">Laptop Cadangan</td>
+              <td class="py-3.5 text-body">Komputer</td>
+              <td class="py-3.5"><span class="rounded-full bg-[#CCFBEF] px-3 py-1 text-xs font-medium text-[#115E59]">Tersedia</span></td>
+            </tr>
+            <tr class="border-b border-line">
+              <td class="py-3.5 text-sm text-body">2</td>
+              <td class="py-3.5 font-semibold">Speaker Portable</td>
+              <td class="py-3.5 text-body">Audio</td>
+              <td class="py-3.5"><span class="rounded-full bg-[#FEF3C7] px-3 py-1 text-xs font-medium text-[#92400E]">Dipinjam</span></td>
+            </tr>
+            <tr class="border-b border-line">
+              <td class="py-3.5 text-sm text-body">3</td>
+              <td class="py-3.5 font-semibold">Kamera Action</td>
+              <td class="py-3.5 text-body">Multimedia</td>
+              <td class="py-3.5"><span class="rounded-full bg-[#FEF3C7] px-3 py-1 text-xs font-medium text-[#92400E]">Dipinjam</span></td>
+            </tr>
+            <tr class="border-b border-line">
+              <td class="py-3.5 text-sm text-body">4</td>
+              <td class="py-3.5 font-semibold">Stop Kontak Rol</td>
+              <td class="py-3.5 text-body">Aksesori</td>
+              <td class="py-3.5"><span class="rounded-full bg-[#CCFBEF] px-3 py-1 text-xs font-medium text-[#115E59]">Tersedia</span></td>
+            </tr>
+            <tr class="border-b border-line">
+              <td class="py-3.5 text-sm text-body">5</td>
+              <td class="py-3.5 font-semibold">Layar Proyektor</td>
+              <td class="py-3.5 text-body">Presentasi</td>
+              <td class="py-3.5"><span class="rounded-full bg-[#CCFBEF] px-3 py-1 text-xs font-medium text-[#115E59]">Tersedia</span></td>
+            </tr>
+            <tr class="border-b border-line">
+              <td class="py-3.5 text-sm text-body">6</td>
+              <td class="py-3.5 font-semibold">Keyboard USB</td>
+              <td class="py-3.5 text-body">Aksesori</td>
+              <td class="py-3.5"><span class="rounded-full bg-[#CCFBEF] px-3 py-1 text-xs font-medium text-[#115E59]">Tersedia</span></td>
+            </tr>
+          </tbody>
+        </table>
 
-      <div class="bg-white rounded-2xl shadow p-4 sm:p-5 flex flex-col">
-        <h2 class="text-lg font-semibold mb-3">Form pinjam</h2>
-        <form id="borrow-form" class="flex flex-col flex-1" novalidate>
-          <div class="mb-4">
-            <label for="borrower-name" class="block text-sm font-semibold text-cyan-800 mb-1.5">Nama peminjam</label>
-            <input id="borrower-name" name="borrower_name" type="text" required minlength="2" maxlength="80"
-              autocomplete="off" placeholder="Tulis nama peminjam"
-              class="w-full min-h-[48px] rounded-xl border-[1.5px] border-slate-300 px-3.5 text-base focus:outline-none focus:ring-4 focus:ring-cyan-200 focus:border-cyan-700">
-            <p class="text-xs text-slate-600 mt-1">2 sampai 80 karakter</p>
+        <!-- Daftar mobile -->
+        <ul class="md:hidden">
+          <li class="flex items-center justify-between border-b border-line py-2.5">
+            <div><p class="text-[15px] font-semibold">Laptop Cadangan</p><p class="text-xs text-muted">Komputer</p></div>
+            <span class="rounded-full bg-[#CCFBEF] px-3 py-1 text-xs font-medium text-[#115E59]">Tersedia</span>
+          </li>
+          <li class="flex items-center justify-between border-b border-line py-2.5">
+            <div><p class="text-[15px] font-semibold">Speaker Portable</p><p class="text-xs text-muted">Audio</p></div>
+            <span class="rounded-full bg-[#FEF3C7] px-3 py-1 text-xs font-medium text-[#92400E]">Dipinjam</span>
+          </li>
+          <li class="flex items-center justify-between border-b border-line py-2.5">
+            <div><p class="text-[15px] font-semibold">Kamera Action</p><p class="text-xs text-muted">Multimedia</p></div>
+            <span class="rounded-full bg-[#FEF3C7] px-3 py-1 text-xs font-medium text-[#92400E]">Dipinjam</span>
+          </li>
+          <li class="flex items-center justify-between border-b border-line py-2.5">
+            <div><p class="text-[15px] font-semibold">Stop Kontak Rol</p><p class="text-xs text-muted">Aksesori</p></div>
+            <span class="rounded-full bg-[#CCFBEF] px-3 py-1 text-xs font-medium text-[#115E59]">Tersedia</span>
+          </li>
+          <li class="flex items-center justify-between border-b border-line py-2.5">
+            <div><p class="text-[15px] font-semibold">Layar Proyektor</p><p class="text-xs text-muted">Presentasi</p></div>
+            <span class="rounded-full bg-[#CCFBEF] px-3 py-1 text-xs font-medium text-[#115E59]">Tersedia</span>
+          </li>
+          <li class="flex items-center justify-between border-b border-line py-2.5">
+            <div><p class="text-[15px] font-semibold">Keyboard USB</p><p class="text-xs text-muted">Aksesori</p></div>
+            <span class="rounded-full bg-[#CCFBEF] px-3 py-1 text-xs font-medium text-[#115E59]">Tersedia</span>
+          </li>
+        </ul>
+      </section>
+
+      <!-- Form pinjam -->
+      <section class="flex flex-col rounded-2xl bg-white p-4 shadow-card md:p-[18px]">
+        <h2 class="mb-3 text-[17px] font-bold">Form pinjam</h2>
+        <form class="flex flex-1 flex-col gap-3.5" action="#" method="post">
+          <div>
+            <label for="nama" class="mb-1.5 block text-[13px] font-medium text-brand-dark">Nama peminjam</label>
+            <input id="nama" name="nama" type="text" minlength="2" maxlength="80" required placeholder="Tulis nama peminjam"
+              class="h-12 w-full rounded-xl border-[1.5px] border-field bg-white px-3.5 text-base text-ink placeholder:text-[#7C98A2] focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20" />
+            <p class="mt-1.5 text-xs text-muted">2 sampai 80 karakter</p>
           </div>
-          <div class="mb-5">
-            <label for="equipment-id" class="block text-sm font-semibold text-cyan-800 mb-1.5">Pilih alat</label>
-            <select id="equipment-id" name="equipment_id" required
-              class="w-full min-h-[48px] rounded-xl border-[1.5px] border-slate-300 px-3 text-base bg-white focus:outline-none focus:ring-4 focus:ring-cyan-200 focus:border-cyan-700">
-              <option value="">Pilih alat yang tersedia</option>
-            </select>
-            <p class="text-xs text-slate-600 mt-1">Hanya alat berstatus Tersedia yang muncul</p>
+
+          <div>
+            <label for="alat" class="mb-1.5 block text-[13px] font-medium text-brand-dark">Pilih alat</label>
+            <div class="relative">
+              <select id="alat" name="alat" required
+                class="h-12 w-full appearance-none rounded-xl border-[1.5px] border-field bg-white pl-3.5 pr-10 text-base text-[#3B5764] focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
+                <option value="" selected disabled>Pilih alat yang tersedia</option>
+                <option value="1">Laptop Cadangan</option>
+                <option value="4">Stop Kontak Rol</option>
+                <option value="5">Layar Proyektor</option>
+                <option value="6">Keyboard USB</option>
+              </select>
+              <svg class="pointer-events-none absolute right-3.5 top-1/2 h-5 w-5 -translate-y-1/2" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="m6 9 6 6 6-6" stroke="#5B7C88" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </div>
+            <p class="mt-1.5 text-xs text-muted">Hanya alat berstatus Tersedia yang muncul</p>
           </div>
-          <button id="btn-borrow" type="submit"
-            class="mt-auto w-full min-h-[48px] rounded-xl bg-cyan-700 text-white text-base font-semibold hover:bg-cyan-800 focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-300 disabled:opacity-60 disabled:cursor-not-allowed">
+
+          <!-- Tambahan: tanggal peminjaman -->
+          <div>
+            <label for="tanggal" class="mb-1.5 block text-[13px] font-medium text-brand-dark">Tanggal peminjaman</label>
+            <div class="relative">
+              <input id="tanggal" name="tanggal" type="date" required
+                class="h-12 w-full appearance-none rounded-xl border-[1.5px] border-field bg-white pl-3.5 pr-10 text-base text-[#3B5764] focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0" />
+              <svg class="pointer-events-none absolute right-3.5 top-1/2 h-5 w-5 -translate-y-1/2" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="16" rx="3" stroke="#0F7490" stroke-width="2" />
+                <path d="M3 10h18M8 3v4M16 3v4" stroke="#0F7490" stroke-width="2" stroke-linecap="round" />
+              </svg>
+            </div>
+            <p class="mt-1.5 text-xs text-muted">Tanggal alat mulai dipinjam</p>
+          </div>
+
+          <button type="submit" class="mt-auto h-12 w-full rounded-xl bg-brand text-[15px] font-bold tracking-wide text-white transition hover:bg-brand-dark">
             PINJAM
           </button>
         </form>
-      </div>
-    </section>
+      </section>
+    </div>
 
-    <!-- ================= RIWAYAT (F04 + F05) + TAMBAH ALAT (opsional) ================= -->
-    <section class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+    <!-- Riwayat + Tambah alat (di mobile: Tambah alat dulu, lalu Riwayat) -->
+    <div class="flex flex-col gap-4 md:grid md:grid-cols-[1fr_393px] md:gap-5">
+      <!-- Riwayat -->
+      <section class="order-last rounded-2xl bg-white p-4 shadow-card md:order-none md:p-[18px]">
+        <h2 class="mb-3 text-[17px] font-bold">Riwayat peminjaman</h2>
 
-      <!-- Kalau kartu "Tambah alat" di bawah diaktifkan, ganti lg:col-span-3 menjadi lg:col-span-2 -->
-      <div class="lg:col-span-3 bg-white rounded-2xl shadow p-4 sm:p-5">
-        <h2 class="text-lg font-semibold mb-3">Riwayat peminjaman</h2>
-        <div class="overflow-x-auto">
-          <table class="stack-table w-full text-sm text-left">
-            <thead>
-              <tr class="text-xs uppercase tracking-wide text-slate-600 border-b border-cyan-100">
-                <th class="py-2 px-1.5">Alat</th>
-                <th class="py-2 px-1.5">Peminjam</th>
-                <th class="py-2 px-1.5">Tanggal</th>
-                <th class="py-2 px-1.5">Status</th>
-                <th class="py-2 px-1.5">Aksi</th>
-              </tr>
-            </thead>
-            <!-- Dibiarkan kosong: diisi app.js dari GET /api/loans.
-                 Urutan sel per baris: equipment_name | borrower_name | borrowed_at | status | aksi
-                 Sel aksi: tombol <button class="btn-return"> hanya untuk status "dipinjam";
-                 untuk "dikembalikan" biarkan sel kosong. -->
-            <tbody id="loan-list" class="[&>tr]:border-b [&>tr]:border-cyan-50 [&_td]:py-3.5 [&_td]:px-1.5 [&>tr>td:nth-child(1)]:font-semibold"></tbody>
-          </table>
+        <!-- Tabel desktop -->
+        <table class="hidden w-full text-left md:table">
+          <thead>
+            <tr class="border-b border-[#D5E3E8] text-xs font-semibold uppercase tracking-wide text-muted">
+              <th class="py-2.5">Alat</th>
+              <th class="py-2.5">Peminjam</th>
+              <th class="py-2.5">Tanggal</th>
+              <th class="py-2.5">Status</th>
+              <th class="py-2.5">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b border-line">
+              <td class="py-3 text-[15px] font-semibold">Speaker Portable</td>
+              <td class="py-3 text-sm text-body">Rina</td>
+              <td class="py-3 text-sm text-body">21 Nov 2026, 09.15</td>
+              <td class="py-3"><span class="rounded-full bg-[#FEF3C7] px-3 py-1 text-xs font-medium text-[#92400E]">Dipinjam</span></td>
+              <td class="py-3"><button type="button" class="rounded-xl border-[1.5px] border-brand bg-white px-6 py-3 text-sm font-semibold text-brand-dark hover:bg-[#ECFEFF]">Kembali</button></td>
+            </tr>
+            <tr class="border-b border-line">
+              <td class="py-3 text-[15px] font-semibold">Kamera Action</td>
+              <td class="py-3 text-sm text-body">Dewi</td>
+              <td class="py-3 text-sm text-body">21 Nov 2026, 09.40</td>
+              <td class="py-3"><span class="rounded-full bg-[#FEF3C7] px-3 py-1 text-xs font-medium text-[#92400E]">Dipinjam</span></td>
+              <td class="py-3"><button type="button" class="rounded-xl border-[1.5px] border-brand bg-white px-6 py-3 text-sm font-semibold text-brand-dark hover:bg-[#ECFEFF]">Kembali</button></td>
+            </tr>
+            <tr class="border-b border-line">
+              <td class="py-3 text-[15px] font-semibold">Keyboard USB</td>
+              <td class="py-3 text-sm text-body">Bima</td>
+              <td class="py-3 text-sm text-body">21 Nov 2026, 08.50</td>
+              <td class="py-3"><span class="rounded-full bg-[#CCFBEF] px-3 py-1 text-xs font-medium text-[#115E59]">Dikembalikan</span></td>
+              <td class="py-3 text-sm text-body">-</td>
+            </tr>
+            <tr class="border-b border-line">
+              <td class="py-3 text-[15px] font-semibold">Layar Proyektor</td>
+              <td class="py-3 text-sm text-body">Sari</td>
+              <td class="py-3 text-sm text-body">20 Nov 2026, 13.20</td>
+              <td class="py-3"><span class="rounded-full bg-[#CCFBEF] px-3 py-1 text-xs font-medium text-[#115E59]">Dikembalikan</span></td>
+              <td class="py-3 text-sm text-body">-</td>
+            </tr>
+            <tr class="border-b border-line">
+              <td class="py-3 text-[15px] font-semibold">Laptop Cadangan</td>
+              <td class="py-3 text-sm text-body">Tono</td>
+              <td class="py-3 text-sm text-body">20 Nov 2026, 10.05</td>
+              <td class="py-3"><span class="rounded-full bg-[#CCFBEF] px-3 py-1 text-xs font-medium text-[#115E59]">Dikembalikan</span></td>
+              <td class="py-3 text-sm text-body">-</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Kartu mobile -->
+        <div class="space-y-3 md:hidden">
+          <article class="space-y-2 rounded-xl bg-page p-3">
+            <div class="flex items-center justify-between">
+              <p class="text-[15px] font-semibold">Speaker Portable</p>
+              <span class="rounded-full bg-[#FEF3C7] px-3 py-1 text-xs font-medium text-[#92400E]">Dipinjam</span>
+            </div>
+            <p class="text-[13px] leading-snug text-body">Peminjam: Rina<br />Tanggal: 21 Nov 2026, 09.15</p>
+            <button type="button" class="w-full rounded-xl border-[1.5px] border-brand bg-white py-3 text-sm font-semibold text-brand-dark">Kembali</button>
+          </article>
+          <article class="space-y-2 rounded-xl bg-page p-3">
+            <div class="flex items-center justify-between">
+              <p class="text-[15px] font-semibold">Kamera Action</p>
+              <span class="rounded-full bg-[#FEF3C7] px-3 py-1 text-xs font-medium text-[#92400E]">Dipinjam</span>
+            </div>
+            <p class="text-[13px] leading-snug text-body">Peminjam: Dewi<br />Tanggal: 21 Nov 2026, 09.40</p>
+            <button type="button" class="w-full rounded-xl border-[1.5px] border-brand bg-white py-3 text-sm font-semibold text-brand-dark">Kembali</button>
+          </article>
+          <article class="space-y-2 rounded-xl bg-page p-3">
+            <div class="flex items-center justify-between">
+              <p class="text-[15px] font-semibold">Keyboard USB</p>
+              <span class="rounded-full bg-[#CCFBEF] px-3 py-1 text-xs font-medium text-[#115E59]">Dikembalikan</span>
+            </div>
+            <p class="text-[13px] leading-snug text-body">Peminjam: Bima<br />Tanggal: 21 Nov 2026, 08.50</p>
+          </article>
+          <article class="space-y-2 rounded-xl bg-page p-3">
+            <div class="flex items-center justify-between">
+              <p class="text-[15px] font-semibold">Layar Proyektor</p>
+              <span class="rounded-full bg-[#CCFBEF] px-3 py-1 text-xs font-medium text-[#115E59]">Dikembalikan</span>
+            </div>
+            <p class="text-[13px] leading-snug text-body">Peminjam: Sari<br />Tanggal: 20 Nov 2026, 13.20</p>
+          </article>
+          <article class="space-y-2 rounded-xl bg-page p-3">
+            <div class="flex items-center justify-between">
+              <p class="text-[15px] font-semibold">Laptop Cadangan</p>
+              <span class="rounded-full bg-[#CCFBEF] px-3 py-1 text-xs font-medium text-[#115E59]">Dikembalikan</span>
+            </div>
+            <p class="text-[13px] leading-snug text-body">Peminjam: Tono<br />Tanggal: 20 Nov 2026, 10.05</p>
+          </article>
         </div>
-      </div>
+      </section>
 
-      <!-- OPSIONAL, di luar kontrak PDF. Disembunyikan secara default.
-           Aktifkan (hapus "hidden") HANYA setelah semua tes T01-T08 lulus dan
-           Siswa 2 menambahkan endpoint POST /api/equipment. Jangan dikerjakan setelah 14.30. -->
-      <div id="add-equipment-section" class="hidden bg-white rounded-2xl shadow p-4 sm:p-5 flex flex-col">
-        <h2 class="text-lg font-semibold mb-3 flex items-center gap-2">
-          Tambah alat
-          <span class="rounded-full bg-cyan-100 text-cyan-800 text-[11px] font-semibold px-2.5 py-0.5">Opsional</span>
-        </h2>
-        <form id="add-equipment-form" class="flex flex-col flex-1" novalidate>
-          <div class="mb-4">
-            <label for="new-name" class="block text-sm font-semibold text-cyan-800 mb-1.5">Nama alat</label>
-            <input id="new-name" name="name" type="text" maxlength="100" placeholder="Contoh: Mouse Gaming"
-              class="w-full min-h-[48px] rounded-xl border-[1.5px] border-slate-300 px-3.5 text-base focus:outline-none focus:ring-4 focus:ring-cyan-200 focus:border-cyan-700">
+      <!-- Tambah alat -->
+      <section class="flex flex-col rounded-2xl bg-white p-4 shadow-card md:p-[18px]">
+        <div class="mb-3 flex items-center gap-2">
+          <h2 class="text-[17px] font-bold">Tambah alat</h2>
+          <span class="rounded-full bg-[#DDF1F5] px-2 py-0.5 text-[11px] font-medium text-brand-dark">Opsional</span>
+        </div>
+        <form class="flex flex-1 flex-col gap-3.5" action="#" method="post">
+          <div>
+            <label for="nama-alat" class="mb-1.5 block text-[13px] font-medium text-brand-dark">Nama alat</label>
+            <input id="nama-alat" name="nama_alat" type="text" placeholder="Contoh: Mouse Gaming"
+              class="h-12 w-full rounded-xl border-[1.5px] border-field bg-white px-3.5 text-base text-ink placeholder:text-[#7C98A2] focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20" />
           </div>
-          <div class="mb-5">
-            <label for="new-category" class="block text-sm font-semibold text-cyan-800 mb-1.5">Kategori</label>
-            <input id="new-category" name="category" type="text" maxlength="60" placeholder="Contoh: Aksesori"
-              class="w-full min-h-[48px] rounded-xl border-[1.5px] border-slate-300 px-3.5 text-base focus:outline-none focus:ring-4 focus:ring-cyan-200 focus:border-cyan-700">
+          <div>
+            <label for="kategori" class="mb-1.5 block text-[13px] font-medium text-brand-dark">Kategori</label>
+            <input id="kategori" name="kategori" type="text" placeholder="Contoh: Aksesori"
+              class="h-12 w-full rounded-xl border-[1.5px] border-field bg-white px-3.5 text-base text-ink placeholder:text-[#7C98A2] focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20" />
           </div>
-          <button id="btn-add-equipment" type="submit"
-            class="mt-auto w-full min-h-[48px] rounded-xl border-[1.5px] border-cyan-700 bg-cyan-50 text-cyan-700 text-base font-semibold hover:bg-cyan-100 focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-300 disabled:opacity-60">
+          <button type="submit" class="mt-auto h-12 w-full rounded-xl border-[1.5px] border-brand bg-[#ECFEFF] text-[15px] font-semibold text-brand-dark transition hover:bg-[#DDF8FB]">
             Tambah alat
           </button>
         </form>
-      </div>
-    </section>
-
+      </section>
+    </div>
   </main>
-
-  <script src="app.js"></script>
 </body>
 </html>
