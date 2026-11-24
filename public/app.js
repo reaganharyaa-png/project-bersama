@@ -12,42 +12,32 @@ const tombolPinjam = $('btn-borrow');
 const daftarRiwayat = $('loan-list');
 const daftarRiwayatHp = $('loan-list-mobile');
 const pesan = $('message');
-const tombolMuat = $('refresh-btn');
 const inputTanggal = $('tanggal');
 
 const BULAN = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 const LENCANA = 'rounded-full px-2.5 py-0.5 text-xs font-medium ';
 const TOMBOL = 'rounded-xl border-[1.5px] border-brand px-5 py-3 text-sm font-semibold text-brand-dark ';
 
-function aman(teks) {
+const aman = (teks) => {
   const div = document.createElement('div');
   div.textContent = teks;
   return div.innerHTML;
-}
+};
 
-function tanggalHariIni() {
-  return new Date().toISOString().slice(0, 10);
-}
+const hariIni = () => new Date().toISOString().slice(0, 10);
+const dua = (angka) => String(angka).padStart(2, '0');
 
-function tulisTanggal(teks) {
+const tulisTanggal = (teks) => {
   const t = new Date(teks);
-  const jam = String(t.getHours()).padStart(2, '0');
-  const menit = String(t.getMinutes()).padStart(2, '0');
-  return `${t.getDate()} ${BULAN[t.getMonth()]} ${t.getFullYear()}, ${jam}.${menit}`;
-}
+  return `${t.getDate()} ${BULAN[t.getMonth()]} ${t.getFullYear()}, ${dua(t.getHours())}.${dua(t.getMinutes())}`;
+};
 
-function lencana(sedia, teks) {
-  const warna = sedia ? 'bg-teal-100 text-teal-800' : 'bg-amber-100 text-amber-800';
-  return `<span class="${LENCANA}${warna}">${teks}</span>`;
-}
-
-function lencanaAlat(status) {
-  return lencana(status === 'available', status === 'available' ? 'Tersedia' : 'Dipinjam');
-}
-
-function lencanaRiwayat(status) {
-  return lencana(status !== 'dipinjam', status === 'dipinjam' ? 'Dipinjam' : 'Dikembalikan');
-}
+const lencana = (ok, ya, tidak) => {
+  const warna = ok ? 'bg-teal-100 text-teal-800' : 'bg-amber-100 text-amber-800';
+  return `<span class="${LENCANA}${warna}">${ok ? ya : tidak}</span>`;
+};
+const lencanaAlat = (s) => lencana(s === 'available', 'Tersedia', 'Dipinjam');
+const lencanaRiwayat = (s) => lencana(s !== 'dipinjam', 'Dikembalikan', 'Dipinjam');
 
 let waktuPesan;
 function tampilkanPesan(teks, gagal) {
@@ -103,29 +93,25 @@ function tampilkanAlat(alat) {
     sedia.map((a) => `<option value="${a.id}">${aman(a.name)}</option>`).join('');
 }
 
+const tombolKembali = (r, kelas, kosong) =>
+  r.status === 'dipinjam'
+    ? `<button type="button" data-id="${r.id}" class="${kelas}${TOMBOL}">Kembali</button>`
+    : kosong;
+
 function tampilkanRiwayat(riwayat) {
   daftarRiwayat.innerHTML = riwayat
-    .map((r) => {
-      const aksi = r.status === 'dipinjam'
-        ? `<button type="button" data-id="${r.id}" class="${TOMBOL}">Kembali</button>`
-        : '-';
-      return `
+    .map((r) => `
       <tr class="border-b border-line">
         <td class="py-3 font-semibold">${aman(r.equipment_name)}</td>
         <td class="py-3">${aman(r.borrower_name)}</td>
         <td class="py-3">${tulisTanggal(r.borrowed_at)}</td>
         <td class="py-3">${lencanaRiwayat(r.status)}</td>
-        <td class="py-3">${aksi}</td>
-      </tr>`;
-    })
+        <td class="py-3">${tombolKembali(r, '', '-')}</td>
+      </tr>`)
     .join('');
 
   daftarRiwayatHp.innerHTML = riwayat
-    .map((r) => {
-      const aksi = r.status === 'dipinjam'
-        ? `<button type="button" data-id="${r.id}" class="mt-3 w-full ${TOMBOL}">Kembali</button>`
-        : '';
-      return `
+    .map((r) => `
       <div class="rounded-xl border border-line p-3">
         <div class="flex items-center justify-between">
           <p class="font-semibold">${aman(r.equipment_name)}</p>
@@ -133,9 +119,8 @@ function tampilkanRiwayat(riwayat) {
         </div>
         <p class="mt-2 text-[13px]">Peminjam: ${aman(r.borrower_name)}</p>
         <p class="text-[13px]">Tanggal: ${tulisTanggal(r.borrowed_at)}</p>
-        ${aksi}
-      </div>`;
-    })
+        ${tombolKembali(r, 'mt-3 w-full ', '')}
+      </div>`)
     .join('');
 }
 
@@ -150,6 +135,16 @@ async function muatData() {
   }
 }
 
+async function jalankan(kerja) {
+  try {
+    const hasil = await kerja();
+    tampilkanPesan(hasil.message, false);
+  } catch (galat) {
+    tampilkanPesan(galat.message, true);
+  }
+  muatData();
+}
+
 formPinjam.addEventListener('submit', async (e) => {
   e.preventDefault();
   const nama = inputNama.value.trim();
@@ -162,42 +157,31 @@ formPinjam.addEventListener('submit', async (e) => {
   }
 
   tombolPinjam.disabled = true;
-  try {
+  await jalankan(async () => {
     const hasil = await panggil('/loans', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ equipment_id: Number(pilihAlat.value), borrower_name: nama }),
     });
     formPinjam.reset();
-    inputTanggal.value = tanggalHariIni();
-    tampilkanPesan(hasil.message, false);
-  } catch (galat) {
-    tampilkanPesan(galat.message, true);
-  }
+    inputTanggal.value = hariIni();
+    return hasil;
+  });
   tombolPinjam.disabled = false;
-  muatData();
 });
 
-async function kembalikan(e) {
+function kembalikan(e) {
   const id = e.target.dataset.id;
-  if (!id) return;
-  try {
-    const hasil = await panggil(`/loans/${id}/return`, { method: 'PATCH' });
-    tampilkanPesan(hasil.message, false);
-  } catch (galat) {
-    tampilkanPesan(galat.message, true);
-  }
-  muatData();
+  if (id) jalankan(() => panggil(`/loans/${id}/return`, { method: 'PATCH' }));
 }
 
-daftarRiwayat.addEventListener('click', kembalikan);
-daftarRiwayatHp.addEventListener('click', kembalikan);
-tombolMuat.addEventListener('click', muatData);
+[daftarRiwayat, daftarRiwayatHp].forEach((el) => el.addEventListener('click', kembalikan));
+$('refresh-btn').addEventListener('click', muatData);
 
 $('formTambahAlat').addEventListener('submit', (e) => {
   e.preventDefault();
   tampilkanPesan('Fitur tambah alat belum tersedia.', true);
 });
 
-inputTanggal.value = tanggalHariIni();
+inputTanggal.value = hariIni();
 muatData();
