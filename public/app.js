@@ -1,160 +1,153 @@
-const $ = (id) => document.getElementById(id);
-const namaBulan = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+// Mengambil bagian halaman berdasarkan id-nya
+function ambil(id) {
+  return document.getElementById(id);
+}
 
-// Mengamankan teks dari pengguna sebelum dimasukkan ke halaman
-function aman(teks) {
+// Mengubah kode status dari server menjadi tulisan
+const tulisanStatus = {
+  available: "Tersedia",
+  borrowed: "Dipinjam",
+  dipinjam: "Dipinjam",
+  dikembalikan: "Dikembalikan",
+};
+
+// Mengamankan teks supaya tidak merusak halaman
+function amankanTeks(teks) {
   const kotak = document.createElement("div");
   kotak.textContent = teks;
   return kotak.innerHTML;
 }
 
-// Tanggal hari ini berbentuk 2026-11-23 (format "sv-SE" memang menghasilkan bentuk ini)
-const hariIni = () => new Date().toLocaleDateString("sv-SE");
-
-// "2026-11-21 09:15:00" menjadi "21 Nov 2026, 09.15"
-function formatTanggal(teks) {
-  const t = new Date(teks.replace(" ", "T"));
-  const jam = String(t.getHours()).padStart(2, "0");
-  const menit = String(t.getMinutes()).padStart(2, "0");
-  return `${t.getDate()} ${namaBulan[t.getMonth()]} ${t.getFullYear()}, ${jam}.${menit}`;
+// Menampilkan pesan berhasil (hijau) atau gagal (merah)
+function tampilkanPesan(isi, gagal) {
+  let warna = "bg-green-100 text-green-800";
+  if (gagal) {
+    warna = "bg-red-100 text-red-800";
+  }
+  ambil("message").className = "rounded-xl px-4 py-3 text-sm " + warna;
+  ambil("message").textContent = isi;
 }
 
-function label(status) {
-  const warna = status === "Dipinjam" ? "bg-[#FEF3C7] text-[#92400E]" : "bg-[#CCFBEF] text-[#115E59]";
-  return `<span class="rounded-full px-3 py-1 text-xs font-medium ${warna}">${status}</span>`;
-}
-
-let waktuPesan;
-function pesan(isi, jenis = "berhasil") {
-  const warna = { berhasil: "bg-[#CCFBEF] text-[#0F5F55]", gagal: "bg-[#FEE2E2] text-[#991B1B]" };
-  $("pesan").className = "rounded-xl px-4 py-3 text-sm font-medium " + warna[jenis];
-  $("pesan").textContent = isi;
-  clearTimeout(waktuPesan);
-  waktuPesan = setTimeout(() => ($("pesan").className = "hidden"), 3500);
-}
-
-// Satu fungsi untuk semua permintaan ke server
-async function api(alamat, metode = "GET", data) {
-  const jawaban = await fetch(alamat, {
+// Mengirim permintaan ke server lalu mengambil jawabannya
+async function kirimPermintaan(alamat, metode, data) {
+  const pengaturan = {
     method: metode,
     headers: { "Content-Type": "application/json" },
-    body: data ? JSON.stringify(data) : undefined,
-  });
+  };
+  if (data) {
+    pengaturan.body = JSON.stringify(data);
+  }
+
+  const jawaban = await fetch(alamat, pengaturan);
   const hasil = await jawaban.json();
-  if (!jawaban.ok) throw new Error(hasil.pesan);
+  if (!jawaban.ok) {
+    throw new Error(hasil.message);
+  }
   return hasil;
 }
 
-function tombolKembali(r, kelas) {
-  if (r.status !== "Dipinjam") return "";
-  return `<button type="button" data-id="${r.id}" class="tombol-kembali ${kelas}">Kembali</button>`;
-}
-
+// Mengambil data terbaru dari server lalu menampilkannya
 async function muatData() {
   try {
-    const alat = await api("/api/alat");
-    const riwayat = await api("/api/riwayat");
-    const tersedia = alat.filter((a) => a.status === "Tersedia");
+    const hasilAlat = await kirimPermintaan("/api/equipment", "GET");
+    const hasilRiwayat = await kirimPermintaan("/api/loans", "GET");
+    const daftarAlat = hasilAlat.data;
+    const daftarRiwayat = hasilRiwayat.data;
 
-    // Statistik
-    $("statTotal").textContent = alat.length;
-    $("statTersedia").textContent = tersedia.length;
-    $("statDipinjam").textContent = alat.length - tersedia.length;
+    let jumlahTersedia = 0;
+    let isiTabelAlat = "";
+    let isiPilihan = '<option value="" selected disabled>Pilih alat</option>';
 
-    // Daftar alat (tabel untuk layar besar, daftar untuk HP)
-    $("tabelAlat").innerHTML = alat
-      .map(
-        (a, i) => `<tr class="border-b border-line">
-          <td class="py-3.5 text-sm text-body">${i + 1}</td>
-          <td class="py-3.5 font-semibold">${aman(a.nama)}</td>
-          <td class="py-3.5 text-body">${aman(a.kategori)}</td>
-          <td class="py-3.5">${label(a.status)}</td></tr>`
-      )
-      .join("");
+    for (const alat of daftarAlat) {
+      isiTabelAlat += `<tr class="border-b">
+        <td class="py-2">${amankanTeks(alat.name)}</td>
+        <td class="py-2">${amankanTeks(alat.category)}</td>
+        <td class="py-2">${tulisanStatus[alat.status]}</td></tr>`;
 
-    $("daftarAlatHp").innerHTML = alat
-      .map(
-        (a) => `<li class="flex items-center justify-between border-b border-line py-2.5">
-          <div><p class="text-[15px] font-semibold">${aman(a.nama)}</p>
-          <p class="text-xs text-muted">${aman(a.kategori)}</p></div>${label(a.status)}</li>`
-      )
-      .join("");
+      // Alat yang tersedia dihitung dan masuk ke pilihan form
+      if (alat.status === "available") {
+        jumlahTersedia = jumlahTersedia + 1;
+        isiPilihan += `<option value="${alat.id}">${amankanTeks(alat.name)}</option>`;
+      }
+    }
 
-    // Pilihan alat di form (hanya yang tersedia)
-    const tulisanAwal = tersedia.length ? "Pilih alat yang tersedia" : "Tidak ada alat tersedia";
-    $("pilihAlat").innerHTML =
-      `<option value="" selected disabled>${tulisanAwal}</option>` +
-      tersedia.map((a) => `<option value="${a.id}">${aman(a.nama)}</option>`).join("");
+    ambil("stat-total").textContent = daftarAlat.length;
+    ambil("stat-available").textContent = jumlahTersedia;
+    ambil("stat-borrowed").textContent = daftarAlat.length - jumlahTersedia;
+    ambil("equipment-list").innerHTML = isiTabelAlat;
+    ambil("equipment-id").innerHTML = isiPilihan;
 
-    // Riwayat (tabel untuk layar besar, kartu untuk HP)
-    const kelasTabel = "rounded-xl border-[1.5px] border-brand bg-white px-6 py-3 text-sm font-semibold text-brand-dark hover:bg-[#ECFEFF]";
-    const kelasKartu = "w-full rounded-xl border-[1.5px] border-brand bg-white py-3 text-sm font-semibold text-brand-dark";
+    let isiTabelRiwayat = "";
+    for (const riwayat of daftarRiwayat) {
+      const waktu = new Date(String(riwayat.borrowed_at).replace(" ", "T")).toLocaleString("id-ID");
 
-    $("tabelRiwayat").innerHTML = riwayat
-      .map(
-        (r) => `<tr class="border-b border-line">
-          <td class="py-3 text-[15px] font-semibold">${aman(r.nama_alat)}</td>
-          <td class="py-3 text-sm text-body">${aman(r.nama_peminjam)}</td>
-          <td class="py-3 text-sm text-body">${formatTanggal(r.tanggal_pinjam)}</td>
-          <td class="py-3">${label(r.status)}</td>
-          <td class="py-3 text-sm text-body">${tombolKembali(r, kelasTabel) || "-"}</td></tr>`
-      )
-      .join("");
+      // Tombol Kembali hanya untuk yang masih dipinjam
+      let aksi = "-";
+      if (riwayat.status === "dipinjam") {
+        aksi = `<button type="button" data-id="${riwayat.id}" class="tombol-kembali rounded-xl border px-3 py-1">Kembali</button>`;
+      }
 
-    $("kartuRiwayat").innerHTML = riwayat
-      .map(
-        (r) => `<article class="space-y-2 rounded-xl bg-page p-3">
-          <div class="flex items-center justify-between">
-            <p class="text-[15px] font-semibold">${aman(r.nama_alat)}</p>${label(r.status)}</div>
-          <p class="text-[13px] leading-snug text-body">Peminjam: ${aman(r.nama_peminjam)}<br />Tanggal: ${formatTanggal(r.tanggal_pinjam)}</p>
-          ${tombolKembali(r, kelasKartu)}</article>`
-      )
-      .join("");
+      isiTabelRiwayat += `<tr class="border-b">
+        <td class="py-2">${amankanTeks(riwayat.equipment_name)}</td>
+        <td class="py-2">${amankanTeks(riwayat.borrower_name)}</td>
+        <td class="py-2">${waktu}</td>
+        <td class="py-2">${tulisanStatus[riwayat.status]}</td>
+        <td class="py-2">${aksi}</td></tr>`;
+    }
+    ambil("loan-list").innerHTML = isiTabelRiwayat;
   } catch (kesalahan) {
-    pesan("Gagal memuat data. Pastikan server dan MySQL sudah menyala.", "gagal");
+    tampilkanPesan("Gagal memuat data: " + kesalahan.message, true);
   }
 }
 
-// Kirim aksi ke server, tampilkan pesan, lalu muat ulang data
-async function aksi(alamat, metode, data, formulir) {
+// Saat form pinjam dikirim
+ambil("borrow-form").addEventListener("submit", async function (kejadian) {
+  kejadian.preventDefault();
+
+  const nama = ambil("borrower-name").value.trim();
+  const idAlat = Number(ambil("equipment-id").value);
+
+  if (nama.length < 2 || nama.length > 80) {
+    tampilkanPesan("Nama peminjam harus 2 sampai 80 karakter", true);
+    return;
+  }
+  if (!idAlat) {
+    tampilkanPesan("Pilih alat terlebih dahulu", true);
+    return;
+  }
+
   try {
-    const hasil = await api(alamat, metode, data);
-    pesan(hasil.pesan);
-    if (formulir) formulir.reset();
-    $("tanggal").value = hariIni();
-    muatData();
+    const hasil = await kirimPermintaan("/api/loans", "POST", {
+      equipment_id: idAlat,
+      borrower_name: nama,
+    });
+    tampilkanPesan(hasil.message, false);
+    ambil("borrow-form").reset();
   } catch (kesalahan) {
-    pesan(kesalahan.message, "gagal");
+    tampilkanPesan(kesalahan.message, true);
   }
-}
-
-$("formPinjam").addEventListener("submit", (e) => {
-  e.preventDefault();
-  aksi("/api/pinjam", "POST", {
-    nama: $("nama").value.trim(),
-    alat_id: $("pilihAlat").value,
-    tanggal: $("tanggal").value,
-  }, e.target);
+  muatData();
 });
 
-$("formTambahAlat").addEventListener("submit", (e) => {
-  e.preventDefault();
-  aksi("/api/alat", "POST", {
-    nama: $("namaAlat").value.trim(),
-    kategori: $("kategori").value.trim(),
-  }, e.target);
+// Saat tombol Kembali ditekan
+// (tombolnya dibuat ulang setiap data dimuat, jadi pendengarnya dipasang di seluruh halaman)
+document.addEventListener("click", async function (kejadian) {
+  const tombol = kejadian.target.closest(".tombol-kembali");
+  if (!tombol) {
+    return;
+  }
+
+  try {
+    const hasil = await kirimPermintaan("/api/loans/" + tombol.dataset.id + "/return", "PATCH");
+    tampilkanPesan(hasil.message, false);
+  } catch (kesalahan) {
+    tampilkanPesan(kesalahan.message, true);
+  }
+  muatData();
 });
 
-// Tombol Kembali dibuat ulang setiap data dimuat, jadi pendengarnya dipasang di seluruh halaman
-document.addEventListener("click", (e) => {
-  const tombol = e.target.closest(".tombol-kembali");
-  if (tombol) aksi("/api/kembali/" + tombol.dataset.id, "PUT");
-});
+// Saat tombol Muat ulang ditekan
+ambil("refresh-btn").addEventListener("click", muatData);
 
-$("tombolMuatUlang").addEventListener("click", async () => {
-  await muatData();
-  pesan("Data berhasil dimuat ulang");
-});
-
-$("tanggal").value = hariIni();
+// Tampilkan data saat halaman pertama dibuka
 muatData();
