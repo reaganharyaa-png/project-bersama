@@ -12,11 +12,12 @@ const tombolPinjam = $('btn-borrow');
 const daftarRiwayat = $('loan-list');
 const daftarRiwayatHp = $('loan-list-mobile');
 const pesan = $('message');
+const tombolMuat = $('refresh-btn');
 const inputTanggal = $('tanggal');
 
 const BULAN = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 const LENCANA = 'rounded-full px-2.5 py-0.5 text-xs font-medium ';
-const TOMBOL = 'rounded-xl border-[1.5px] border-brand px-5 py-3 text-sm font-semibold text-brand-dark ';
+const TOMBOL = 'rounded-xl border-[1.5px] border-brand px-5 py-3 text-sm font-semibold text-brand-dark';
 
 const aman = (teks) => {
   const div = document.createElement('div');
@@ -24,7 +25,7 @@ const aman = (teks) => {
   return div.innerHTML;
 };
 
-const hariIni = () => new Date().toISOString().slice(0, 10);
+const hariIni = () => new Date().toLocaleDateString('en-CA');
 const dua = (angka) => String(angka).padStart(2, '0');
 
 const tulisTanggal = (teks) => {
@@ -36,8 +37,8 @@ const lencana = (ok, ya, tidak) => {
   const warna = ok ? 'bg-teal-100 text-teal-800' : 'bg-amber-100 text-amber-800';
   return `<span class="${LENCANA}${warna}">${ok ? ya : tidak}</span>`;
 };
-const lencanaAlat = (s) => lencana(s === 'available', 'Tersedia', 'Dipinjam');
-const lencanaRiwayat = (s) => lencana(s !== 'dipinjam', 'Dikembalikan', 'Dipinjam');
+const lencanaAlat = (status) => lencana(status === 'available', 'Tersedia', 'Dipinjam');
+const lencanaRiwayat = (status) => lencana(status === 'dikembalikan', 'Dikembalikan', 'Dipinjam');
 
 let waktuPesan;
 function tampilkanPesan(teks, gagal) {
@@ -99,6 +100,12 @@ const tombolKembali = (r, kelas, kosong) =>
     : kosong;
 
 function tampilkanRiwayat(riwayat) {
+  if (riwayat.length === 0) {
+    daftarRiwayat.innerHTML = '<tr><td colspan="5" class="py-4 text-center">Belum ada riwayat peminjaman.</td></tr>';
+    daftarRiwayatHp.innerHTML = '<p class="py-2 text-center text-sm text-muted">Belum ada riwayat peminjaman.</p>';
+    return;
+  }
+
   daftarRiwayat.innerHTML = riwayat
     .map((r) => `
       <tr class="border-b border-line">
@@ -176,7 +183,7 @@ function kembalikan(e) {
 }
 
 [daftarRiwayat, daftarRiwayatHp].forEach((el) => el.addEventListener('click', kembalikan));
-$('refresh-btn').addEventListener('click', muatData);
+tombolMuat.addEventListener('click', muatData);
 
 $('formTambahAlat').addEventListener('submit', (e) => {
   e.preventDefault();
