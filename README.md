@@ -1,196 +1,6 @@
 # PinjamLab
 
-<<<<<<< HEAD
-Aplikasi web sederhana untuk mencatat peminjaman alat kelas. Pengelola bisa melihat ketersediaan alat, mencatat nama peminjam, mengembalikan alat, dan memeriksa riwayat peminjaman.
-
-Proyek kelompok BTEK Academy (Project-Based Learning), dikerjakan oleh 4 siswa dalam 1 hari.
-
-## Teknologi
-
-- HTML dan Tailwind CSS
-- JavaScript biasa (tanpa kerangka kerja)
-- Node.js dan Express
-- MySQL
-
-## Fitur
-
-| ID | Fitur | Keterangan |
-| --- | --- | --- |
-| F01 | Katalog alat | Menampilkan nama, kategori, dan status alat |
-| F02 | Ringkasan | Menampilkan jumlah total, tersedia, dan dipinjam |
-| F03 | Form pinjam | Isi nama peminjam dan pilih alat yang tersedia |
-| F04 | Kembalikan | Tombol kembali pada riwayat yang masih dipinjam |
-| F05 | Riwayat | Menampilkan alat, peminjam, waktu pinjam, status, dan aksi |
-| F06 | Pesan | Pemberitahuan saat berhasil atau gagal |
-
-## Aturan Peminjaman
-
-- Satu alat tidak bisa dipinjam dua kali secara bersamaan.
-- Nama peminjam wajib diisi, 2 sampai 80 karakter setelah spasi di tepi dihapus.
-- Waktu peminjaman dicatat otomatis oleh server.
-- Pengembalian tidak menghapus riwayat, hanya mengisi waktu kembali.
-- Pinjaman yang sudah dikembalikan tidak bisa dikembalikan lagi.
-
-## Struktur Folder
-
-```
-pinjamlab/
-├── public/
-│   ├── index.html
-│   └── app.js
-├── routes/
-│   ├── equipment.js
-│   └── loans.js
-├── db.js
-├── server.js
-├── schema.sql
-├── .env.example
-├── .gitignore
-├── package.json
-└── README.md
-```
-
-## Cara Menjalankan
-
-### 1. Yang perlu dipasang
-
-- Node.js (versi LTS)
-- MySQL
-- Git
-
-### 2. Ambil proyek
-
-```
-git clone https://github.com/[isi: nama-akun]/project-bersama.git
-cd project-bersama
-```
-
-### 3. Siapkan pengaturan
-
-Salin `.env.example` menjadi `.env`, lalu isi sesuai MySQL di komputermu.
-
-```
-copy .env.example .env
-```
-
-[isi: tulis daftar isi `.env` sesuai kesepakatan tim, misalnya alamat database, pengguna, kata sandi, dan nama database]
-
-### 4. Siapkan database
-
-Pastikan MySQL menyala, lalu jalankan `schema.sql`:
-
-```
-mysql -u root -p < schema.sql
-```
-
-File ini membuat database `pinjamlab`, tabel `equipment` dan `loans`, serta 6 alat awal.
-
-### 5. Pasang paket
-
-```
-npm install
-```
-
-### 6. Jalankan server
-
-```
-npm start
-```
-
-### 7. Buka di browser
-
-```
-http://localhost:[isi: nomor port]
-```
-
-## Struktur Database
-
-Nama database: `pinjamlab`
-
-**Tabel `equipment`**
-
-| Kolom | Ketentuan |
-| --- | --- |
-| id | INT, kunci utama, otomatis bertambah |
-| name | VARCHAR(100), wajib |
-| category | VARCHAR(60), wajib |
-| status | `available` atau `borrowed`, bawaan `available` |
-
-**Tabel `loans`**
-
-| Kolom | Ketentuan |
-| --- | --- |
-| id | INT, kunci utama, otomatis bertambah |
-| equipment_id | INT, kunci asing ke `equipment.id` |
-| borrower_name | VARCHAR(80), wajib |
-| borrowed_at | DATETIME, terisi otomatis saat pinjam |
-| returned_at | DATETIME, boleh kosong (kosong berarti masih dipinjam) |
-
-**Data awal alat**
-
-| Nama | Kategori |
-| --- | --- |
-| Webcam HD | Multimedia |
-| Mikrofon USB | Audio |
-| Kabel HDMI | Aksesori |
-| Proyektor Mini | Presentasi |
-| Tripod Kamera | Multimedia |
-| Mouse Wireless | Aksesori |
-
-## Daftar Alamat API
-
-| Metode | Alamat | Berhasil | Gagal |
-| --- | --- | --- | --- |
-| GET | `/api/equipment` | 200, `{"data": [...]}` | 500 gangguan server |
-| GET | `/api/loans` | 200, `{"data": [...]}` | 500 gangguan server |
-| POST | `/api/loans` | 201, `{"message": "...", "id": angka}` | 400 data salah, 404 alat tidak ada, 409 sedang dipinjam |
-| PATCH | `/api/loans/:id/return` | 200, `{"message": "..."}` | 400 ID salah, 404 pinjaman tidak ada, 409 sudah kembali |
-
-Semua pesan kesalahan berbentuk `{"message": "..."}`.
-
-Contoh data untuk `POST /api/loans`:
-
-```json
-{
-  "equipment_id": 1,
-  "borrower_name": "Andi"
-}
-```
-
-## Pengujian
-
-Mulai dari database yang sudah di-reset. Isi kolom hasil dengan PASS atau FAIL, dan tulis penyebabnya kalau gagal.
-
-| Kode | Langkah | Hasil yang diharapkan | Hasil | Catatan |
-| --- | --- | --- | --- | --- |
-| T01 | Buka halaman atau muat ulang | 6 alat tampil; total 6, tersedia 6, dipinjam 0 | [isi] | [isi] |
-| T02 | Pinjam Webcam HD untuk Andi | 201; status Webcam menjadi dipinjam, riwayat bertambah | [isi] | [isi] |
-| T03 | Pinjam Webcam yang sama lagi | 409; tidak ada pinjaman baru | [isi] | [isi] |
-| T04 | Kembalikan pinjaman Andi | 200; alat tersedia; waktu kembali terisi | [isi] | [isi] |
-| T05 | Kembalikan pinjaman yang sama lagi lewat API | 409; riwayat tidak berubah | [isi] | [isi] |
-| T06 | Kirim nama kosong atau terlalu singkat | 400; data tidak tercatat | [isi] | [isi] |
-| T07 | Kirim `equipment_id` yang tidak ada | 404; tidak ada pinjaman | [isi] | [isi] |
-| T08 | Muat ulang browser setelah pinjam atau kembali | Status dan riwayat tetap konsisten | [isi] | [isi] |
-
-## Pembagian Tugas
-
-| Anggota | Tugas | File |
-| --- | --- | --- |
-| [isi: nama siswa 1] | Wireframe Figma, halaman responsif, kerangka HTML | `public/index.html` |
-| [isi: nama siswa 2] | Skema MySQL, data awal, koneksi, server, alamat GET alat | `schema.sql`, `db.js`, `server.js`, `routes/equipment.js` |
-| [isi: nama siswa 3] | Riwayat, pinjam, kembali, validasi, aturan status | `routes/loans.js` |
-| [isi: nama siswa 4] | Kode browser, formulir, pesan, pengujian, demo | `public/app.js`, `README.md` |
-
-## Tautan
-
-- Wireframe Figma: [isi: tautan]
-- Repository: [isi: tautan]
-
-## Refleksi
-
-[isi: satu paragraf per siswa tentang kontribusi, review yang diberikan, dan pelajaran yang didapat]
-=======
-Aplikasi web sederhana untuk mencatat peminjaman alat kelas. Pengelola bisa melihat alat yang tersedia, mencatat peminjam, mengembalikan alat, dan melihat riwayat.
+PinjamLab adalah aplikasi web buat nyatat peminjaman alat kelas. Lewat aplikasi ini kita bisa lihat alat mana yang masih tersedia, catat siapa yang minjam, balikin alat, dan lihat riwayat peminjamannya.
 
 ## Teknologi
 
@@ -198,18 +8,19 @@ HTML, JavaScript, Tailwind CSS, Node.js, Express, dan MySQL.
 
 ## Cara Menjalankan
 
-1. Pasang Node.js dan MySQL, lalu nyalakan MySQL.
-2. Salin proyek dari GitHub, lalu masuk ke foldernya:
+1. Install Node.js dan MySQL, lalu nyalakan MySQL (kalau pakai XAMPP, klik Start di bagian MySQL).
+2. Clone project dari GitHub dan masuk ke foldernya:
    ```
    git clone https://github.com/reaganharyaa-png/project-bersama.git
    cd project-bersama
    ```
-3. Buat basis data dan isi data awalnya:
+3. Import database dan data awalnya:
    ```
    mysql -u root -p < schema.sql
    ```
-4. Salin file `.env.example` menjadi `.env`, lalu isi sesuai MySQL di komputermu.
-5. Pasang paket yang dibutuhkan:
+   Bisa juga lewat phpMyAdmin (Import). File ini bikin database `pinjamlab`, tabel `equipment` dan `loans`, plus 6 data alat. Kalau dijalankan lagi, semua data akan ke-reset.
+4. Copy `.env.example` jadi `.env`, lalu sesuaikan isinya dengan MySQL di komputermu (biasanya cukup `DB_PASSWORD`).
+5. Install package:
    ```
    npm install
    ```
@@ -217,23 +28,60 @@ HTML, JavaScript, Tailwind CSS, Node.js, Express, dan MySQL.
    ```
    npm start
    ```
-7. Buka `http://localhost:3000` di Chrome atau peramban lain.
+7. Buka `http://localhost:3000` di browser.
 
-## Alamat Layanan
+## Endpoint API
 
-| Cara | Alamat | Fungsi |
+| Method | Alamat | Fungsi |
 | --- | --- | --- |
-| GET | `/api/equipment` | Mengambil semua alat |
-| GET | `/api/loans` | Mengambil riwayat peminjaman |
-| POST | `/api/loans` | Meminjam alat |
-| PATCH | `/api/loans/:id/return` | Mengembalikan alat |
+| GET | `/api/equipment` | Ambil semua alat |
+| GET | `/api/loans` | Ambil riwayat peminjaman |
+| POST | `/api/loans` | Pinjam alat |
+| PATCH | `/api/loans/:id/return` | Kembalikan alat |
 
 ## Anggota Kelompok
 
 | Nama | Tugas |
 | --- | --- |
 | Rendi | Tampilan halaman (`public/index.html`) |
-| Reagan | Basis data dan server |
+| Reagan | Database dan server |
 | Fakhri | Riwayat, pinjam, dan kembali |
 | Fauzan | Kode halaman (`public/app.js`) dan README |
->>>>>>> 2cfc83c1f1a976fe2386d439abbb218fc061493a
+
+## Kendala yang Ditemui
+
+**Rendi**
+- Susah mengatur desain dan tata letak.
+- Warna yang dipilih awalnya kurang cocok.
+
+**Reagan**
+- File `.env` tidak ikut Git, jadi tiap anggota harus bikin sendiri dari `.env.example`.
+- Halaman kosong kalau database belum di-import atau MySQL belum nyala.
+- Ada konflik merge di `public/index.html` karena file itu dikerjakan di lebih dari satu branch.
+
+**Fakhri**
+- Setelah semua bagian digabung, halaman kami malah kosong. Pas dicek di Network dan Console, ternyata ada error di `app.js` karena ID di `index.html` tidak sama dengan yang dipakai di `app.js`. Backend-nya sebenarnya sudah benar. (isi: siapa yang memperbaiki dan apa yang diubah), lalu halaman jadi normal. Pelajarannya, bug seperti ini baru kelihatan setelah semua bagian digabung.
+
+**Fauzan**
+- Awalnya `app.js` tidak ketemu karena ada di dalam folder `public`.
+- Masih bingung pakai perintah Git lewat CMD.
+- Sempat gagal login dan autentikasi akun GitHub.
+- Susah menemukan kode aktivasi GitHub waktu login.
+
+## Refleksi
+
+**Rendi**
+Saya mengerjakan wireframe di Figma dan `index.html` yang responsif pakai Tailwind. Kesalahan saya, saya pakai ID elemen buatan sendiri, bukan ID dari kontrak di PDF, jadi tidak nyambung dengan `app.js`. Setelah itu saya perbaiki dan kirim lewat branch dan Pull Request. Saya juga baru sadar kalau desain harus dicek dengan aturan bisnis, karena field tanggal di Figma bentrok dengan waktu pinjam yang otomatis diisi server. Waktu review silang, saya (isi: apa yang kamu review). Pelajaran terpenting buat saya: sepakat soal ID dan nama field dari awal bikin proses menyatukan pekerjaan jauh lebih cepat.
+
+**Reagan**
+Saya mengerjakan skema database, koneksi MySQL, server Express, dan endpoint GET `/api/equipment`. Saya juga me-review PR (isi: nama anggota) dengan mengecek (isi: nama field, status HTTP, dan transaksi). Kendala terbesar saya adalah (isi: misalnya `.env` ter-commit dan konflik merge). Dari situ saya belajar kalau `.gitignore` harus disiapkan dari awal, dan kesepakatan nama tabel dan field bikin integrasi lebih lancar.
+
+**Fakhri**
+Di PinjamLab saya kebagian backend peminjaman, yaitu file `routes/loans.js` yang isinya lihat riwayat, pinjam alat, dan kembalikan alat. Saya pastikan nama peminjam dicek dulu, alat yang sedang dipinjam tidak bisa dipinjam lagi, dan kalau ada yang salah server kasih pesan error yang jelas. Semuanya saya tes pakai Postman dan saya cek langsung isi databasenya. Saya juga ikut me-review pekerjaan teman. Yang paling saya pelajari: kalau dari awal tim sudah sepakat soal nama field dan format data, menyambungkan pekerjaan jadi jauh lebih gampang. Ada juga bug yang baru ketahuan setelah semuanya digabung, misalnya halaman kosong karena ID di HTML dan JavaScript beda.
+
+**Fauzan**
+Di proyek PinjamLab saya mengerjakan `app.js`, yaitu kode yang menghubungkan tampilan dengan server, dan juga menyusun README. Awalnya saya sempat bingung karena `app.js` tidak ketemu, ternyata file itu harus ada di dalam folder `public`. Dari situ saya paham kalau struktur folder berpengaruh langsung ke cara server menampilkan halaman.
+
+Bagian yang paling menantang buat saya adalah Git. Saya belum terbiasa pakai perintah Git lewat CMD, dan sempat gagal login karena autentikasi akun GitHub. Saya juga lama mencari kode aktivasi GitHub yang muncul waktu login. Setelah dicoba pelan-pelan, akhirnya saya bisa menambahkan file dengan `git add`, membuat commit dengan `git commit`, dan mengirimnya ke repository dengan `git push`. Sekarang saya tahu bahwa `git push` bukan sekadar mengirim file, tapi juga butuh akun yang sudah terautentikasi dengan benar.
+
+Dari proyek ini saya juga belajar kalau bug sering baru muncul setelah semua bagian digabung. Halaman kami sempat kosong karena ID di `index.html` tidak sama dengan yang saya pakai di `app.js`. 
