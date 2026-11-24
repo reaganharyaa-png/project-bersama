@@ -199,3 +199,4 @@ $('formTambahAlat').addEventListener('submit', (e) => {
 
 inputTanggal.value = hariIni();
 muatData();
+
