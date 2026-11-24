@@ -70,4 +70,41 @@ router.post('/', async (req, res) => {
   }
 });
 
+router.patch('/:id/return', async (req, res) => {
+  try {
+    const loanId = Number(req.params.id);
+
+    if (!Number.isInteger(loanId) || loanId <= 0) {
+      return res.status(400).json({ message: 'ID peminjaman tidak valid' });
+    }
+
+    const [loans] = await db.query(
+      'SELECT * FROM loans WHERE id = ?',
+      [loanId]
+    );
+    if (loans.length === 0) {
+      return res.status(404).json({ message: 'Peminjaman tidak ditemukan' });
+    }
+
+    if (loans[0].returned_at !== null) {
+      return res.status(409).json({ message: 'Alat sudah dikembalikan' });
+    }
+
+    await db.query(
+      'UPDATE loans SET returned_at = NOW() WHERE id = ?',
+      [loanId]
+    );
+
+    await db.query(
+      "UPDATE equipment SET status = 'available' WHERE id = ?",
+      [loans[0].equipment_id]
+    );
+
+    res.status(200).json({ message: 'Berhasil dikembalikan' });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: 'Gangguan server' });
+  }
+});
+
 module.exports = router;
