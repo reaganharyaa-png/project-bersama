@@ -137,10 +137,18 @@ async function muatData() {
     const riwayat = await panggil('/loans');
     tampilkanAlat(alat.data);
     tampilkanRiwayat(riwayat.data);
+    return true;
   } catch (galat) {
     tampilkanPesan(galat.message, true);
+    return false;
   }
 }
+
+tombolMuat.addEventListener('click', async () => {
+  tombolMuat.disabled = true;
+  if (await muatData()) tampilkanPesan('Data berhasil dimuat ulang.', false);
+  tombolMuat.disabled = false;
+});
 
 async function jalankan(kerja) {
   try {
@@ -183,7 +191,6 @@ function kembalikan(e) {
 }
 
 [daftarRiwayat, daftarRiwayatHp].forEach((el) => el.addEventListener('click', kembalikan));
-tombolMuat.addEventListener('click', muatData);
 
 $('formTambahAlat').addEventListener('submit', (e) => {
   e.preventDefault();
