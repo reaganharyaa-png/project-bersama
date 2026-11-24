@@ -10,7 +10,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api/equipment', require('./routes/equipment'));
 app.use('/api/loans', require('./routes/loans'));
 
-// Endpoint /api yang tidak dikenal
 app.use('/api', (req, res) => {
   res.status(404).json({ message: 'Endpoint tidak ditemukan' });
 });
