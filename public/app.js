@@ -198,5 +198,7 @@ $('formTambahAlat').addEventListener('submit', (e) => {
 });
 
 inputTanggal.value = hariIni();
+
+// jalankan data
 muatData();
 
