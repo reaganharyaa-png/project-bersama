@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />      
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PinjamLab - Aplikasi peminjaman alat kelas</title>
 
@@ -36,7 +36,7 @@
   <header class="rounded-b-3xl bg-brand px-4 pb-4 pt-6 text-white md:flex md:items-center md:justify-between md:rounded-none md:px-10 md:py-7">
     <div>
       <h1 class="text-[28px] font-bold leading-tight md:text-3xl">PinjamLab</h1>
-      <p class="text-sm text-[#D6EEF4]">Aplikasi peminjaman alat kelas</p>
+      <p class="text-sm text-[#D6EEF4]">Aplikasi peminjaman peralatan kelas</p>
     </div>
     <button id="refresh-btn" type="button" class="mt-3 w-full rounded-xl bg-white px-5 py-3 text-[15px] font-semibold text-brand-dark shadow-card md:mt-0 md:w-auto">
       Muat ulang
@@ -69,7 +69,7 @@
       <section class="rounded-2xl bg-white p-4 shadow-card md:p-[18px]">
         <h2 class="mb-3 text-[17px] font-bold">Daftar alat</h2>
 
-        <!-- Tabel desktop -->
+        <!-- Tabel desktop  -->
         <table class="hidden w-full text-left md:table">
           <thead>
             <tr class="border-b border-[#D5E3E8] text-xs font-semibold uppercase tracking-wide text-muted">
@@ -82,7 +82,7 @@
           <tbody id="equipment-list" class="text-[15px]"></tbody>
         </table>
 
-        <!-- Daftar mobile  -->
+        <!-- Daftar mobile (isi dibuat oleh app.js) -->
         <ul id="equipment-list-mobile" class="md:hidden"></ul>
       </section>
 
@@ -132,31 +132,27 @@
       </section>
     </div>
 
-    <!-- Riwayat + Tambah alat  -->
-    <div class="flex flex-col gap-4 md:grid md:grid-cols-[1fr_393px] md:gap-5">
-      <!-- Riwayat -->
-      <section class="order-last rounded-2xl bg-white p-4 shadow-card md:order-none md:p-[18px]">
-        <h2 class="mb-3 text-[17px] font-bold">Riwayat peminjaman</h2>
+    <!-- Riwayat -->
+    <section class="rounded-2xl bg-white p-4 shadow-card md:p-[18px]">
+      <h2 class="mb-3 text-[17px] font-bold">Riwayat peminjaman</h2>
 
-        <!-- Tabel desktop  -->
-        <table class="hidden w-full text-left md:table">
-          <thead>
-            <tr class="border-b border-[#D5E3E8] text-xs font-semibold uppercase tracking-wide text-muted">
-              <th class="py-2.5">Alat</th>
-              <th class="py-2.5">Peminjam</th>
-              <th class="py-2.5">Tanggal</th>
-              <th class="py-2.5">Status</th>
-              <th class="py-2.5">Aksi</th>
-            </tr>
-          </thead>
-          <tbody id="loan-list"></tbody>
-        </table>
+      <!-- Tabel desktop  -->
+      <table class="hidden w-full text-left md:table">
+        <thead>
+          <tr class="border-b border-[#D5E3E8] text-xs font-semibold uppercase tracking-wide text-muted">
+            <th class="py-2.5">Alat</th>
+            <th class="py-2.5">Peminjam</th>
+            <th class="py-2.5">Tanggal</th>
+            <th class="py-2.5">Status</th>
+            <th class="py-2.5">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="loan-list"></tbody>
+      </table>
 
-        <!-- Kartu mobile -->
-        <div id="loan-list-mobile" class="space-y-3 md:hidden"></div>
-      </section>
-
-    </div>
+      <!-- Kartu mobile (isi dibuat oleh app.js) -->
+      <div id="loan-list-mobile" class="space-y-3 md:hidden"></div>
+    </section>
   </main>
 
   <script src="app.js"></script>
